@@ -48,7 +48,6 @@ void RegexEngine::Compile(const std::string& pattern) {
             ++i;
         }
 
-        // Квантификатор относится к только что созданному элементу
         QuantifierType quantifier = QuantifierType::None;
         if (i < len) {
             switch (pattern[i]) {
@@ -74,4 +73,4 @@ void RegexEngine::Compile(const std::string& pattern) {
     }
 }
 
-bool RegexEngine::Match(const std::string& text) { return false; }
+bool RegexEngine::Match(const std::string& /*text*/) { return false; }
