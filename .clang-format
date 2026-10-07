@@ -1,0 +1,5 @@
+Language: Cpp
+Based: Google
+AccessModifierOffset: -4
+IndentWidth: 4
+ColumnLimit: 100
