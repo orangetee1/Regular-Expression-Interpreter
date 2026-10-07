@@ -19,7 +19,7 @@ void RegexEngine::Compile(const std::string& pattern) {
         } else if (pattern[i] == '[') {
             const size_t close_pos = pattern.find(']', i + 1);
             if (close_pos == std::string::npos) {
-                // Если скобка не закрыта, можно прервать разбор или выбросить исключение
+                // можно выбросить исключение
                 break;
             }
 
@@ -27,7 +27,6 @@ void RegexEngine::Compile(const std::string& pattern) {
             std::vector<char> ranges;
 
             for (size_t j = i + 1; j < close_pos; ++j) {
-                // Если между символами стоит '-' (например a-d)
                 if (j + 2 < close_pos && pattern[j + 1] == '-') {
                     char start = pattern[j];
                     char end = pattern[j + 2];
@@ -35,7 +34,7 @@ void RegexEngine::Compile(const std::string& pattern) {
                         ranges.push_back(start);
                         ranges.push_back(end);
                     }
-                    j += 2;  // Пропускаем дефис и конечный символ диапазона
+                    j += 2;
                 } else {
                     chars.push_back(pattern[j]);
                 }

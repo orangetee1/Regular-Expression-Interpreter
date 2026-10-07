@@ -1,0 +1,57 @@
+# Сборка CMake
+build/
+cmake-build-*/
+out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+_deps/
+Testing/
+install_manifest.txt
+
+# Скомпилированные объектные файлы и библиотеки
+*.o
+*.obj
+*.lo
+*.slo
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.pch
+*.gch
+*.d
+
+# Исполняемые файлы и дампы отладки
+*.exe
+*.out
+*.app
+/lab2
+core
+vgcore.*
+*.dSYM/
+*.pdb
+*.ilk
+
+# IDE и языковые серверы (CLion, VS Code, Visual Studio, clangd)
+.idea/
+.vscode/
+.vs/
+.cache/
+.clangd/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+
+# Временные файлы редакторов и ОС
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
