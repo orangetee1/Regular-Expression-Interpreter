@@ -13,5 +13,7 @@ public:
     std::vector<Token>& Tokens() { return tokens_; }
 
 private:
+    bool MatchInternal_(const std::string& text, size_t token_idx, size_t str_idx) const;
+
     std::vector<Token> tokens_;
 };

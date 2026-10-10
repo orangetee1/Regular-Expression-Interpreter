@@ -72,4 +72,64 @@ void RegexEngine::Compile(const std::string& pattern) {
     }
 }
 
-bool RegexEngine::Match(const std::string& /*text*/) { return false; }
+bool RegexEngine::MatchInternal_(const std::string& text, size_t token_idx, size_t str_idx) const {
+    // 1. Все токены обработаны
+    if (token_idx == tokens_.size()) {
+        return str_idx == text.size();
+    }
+
+    // 2. Строка закончилась, но токены ещё остались
+    if (str_idx == text.size()) {
+        for (size_t i = token_idx; i < tokens_.size(); ++i) {
+            const QuantifierType q = tokens_[i].Quantifier();
+            if (q != QuantifierType::Star && q != QuantifierType::Question) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    const Token& token = tokens_[token_idx];
+    const QuantifierType q = token.Quantifier();
+
+    // 3. Без квантификатора (None)
+    if (q == QuantifierType::None) {
+        if (str_idx < text.size() && token.Matches(text[str_idx])) {
+            return MatchInternal_(text, token_idx + 1, str_idx + 1);
+        }
+        return false;
+    }
+
+    // 4. Жадные квантификаторы (* и +) без возврата назад (possessive)
+    if (q == QuantifierType::Star || q == QuantifierType::Plus) {
+        size_t count = 0;
+        while (str_idx + count < text.size() && token.Matches(text[str_idx + count])) {
+            ++count;
+        }
+
+        if (q == QuantifierType::Plus && count == 0) {
+            return false;
+        }
+
+        return MatchInternal_(text, token_idx + 1, str_idx + count);
+    }
+
+    // 5. Ленивый квантификатор (?)
+    if (q == QuantifierType::Question) {
+        // Шаг 1: сначала пробуем взять 0 символов
+        if (MatchInternal_(text, token_idx + 1, str_idx)) {
+            return true;
+        }
+
+        // Шаг 2: если с 0 символов не вышло, пробуем взять 1 символ
+        if (str_idx < text.size() && token.Matches(text[str_idx])) {
+            return MatchInternal_(text, token_idx + 1, str_idx + 1);
+        }
+
+        return false;
+    }
+
+    return false;
+}
+
+bool RegexEngine::Match(const std::string& text) { return MatchInternal_(text, 0, 0); }

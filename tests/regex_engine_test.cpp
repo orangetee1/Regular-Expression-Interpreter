@@ -257,3 +257,197 @@ TEST(RegexEngineCompileTest, UnclosedBracketDoesNotCrash) {
 
     EXPECT_TRUE(engine.Tokens().empty());
 }
+
+// ---------------------- Тесты для метода Match ----------------------
+
+// Тест на пустой шаблон
+TEST(RegexEngineMatchTest, EmptyPattern) {
+    RegexEngine engine;
+    engine.Compile("");
+
+    EXPECT_TRUE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match(" "));
+}
+
+// Тест на одиночный литерал
+TEST(RegexEngineMatchTest, SingleLiteral) {
+    RegexEngine engine;
+    engine.Compile("a");
+
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("b"));
+    EXPECT_FALSE(engine.Match("aa"));
+    EXPECT_FALSE(engine.Match(" a"));
+}
+
+// Тест на последовательность литералов
+TEST(RegexEngineMatchTest, MultipleLiterals) {
+    RegexEngine engine;
+    engine.Compile("abc");
+
+    EXPECT_TRUE(engine.Match("abc"));
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("ab"));
+    EXPECT_FALSE(engine.Match("abcd"));
+    EXPECT_FALSE(engine.Match("abd"));
+    EXPECT_FALSE(engine.Match("xabc"));
+}
+
+// Тест на метасимвол точки '.'
+TEST(RegexEngineMatchTest, AnyCharDot) {
+    RegexEngine engine;
+    engine.Compile(".");
+
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("Z"));
+    EXPECT_TRUE(engine.Match("5"));
+    EXPECT_TRUE(engine.Match(" "));
+    EXPECT_TRUE(engine.Match("@"));
+
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("ab"));
+
+    engine.Compile(".b.");
+    EXPECT_TRUE(engine.Match("abc"));
+    EXPECT_TRUE(engine.Match("1b2"));
+    EXPECT_FALSE(engine.Match("ac"));
+}
+
+// Тест на класс символов '[...]'
+TEST(RegexEngineMatchTest, CharacterClass) {
+    RegexEngine engine;
+    engine.Compile("[abc]");
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("c"));
+    EXPECT_FALSE(engine.Match("d"));
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("ab"));
+
+    engine.Compile("[a-d]");
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("c"));
+    EXPECT_TRUE(engine.Match("d"));
+    EXPECT_FALSE(engine.Match("e"));
+
+    engine.Compile("[a-c0-2_]");
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("1"));
+    EXPECT_TRUE(engine.Match("_"));
+    EXPECT_FALSE(engine.Match("d"));
+    EXPECT_FALSE(engine.Match("3"));
+}
+
+// Тест на жадный квантификатор '*' без отката назад (possessive)
+TEST(RegexEngineMatchTest, GreedyStarPossessive) {
+    RegexEngine engine;
+    engine.Compile("a*");
+
+    EXPECT_TRUE(engine.Match(""));
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("aa"));
+    EXPECT_TRUE(engine.Match("aaaaa"));
+    EXPECT_FALSE(engine.Match("b"));
+    EXPECT_FALSE(engine.Match("ab"));
+
+    engine.Compile("a*b");
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("ab"));
+    EXPECT_TRUE(engine.Match("aaab"));
+    EXPECT_FALSE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match("ba"));
+
+    // Требование из ТЗ: строка "aa" НЕ соответствует "a*a",
+    // так как "a*" забирает все символы 'a', и для "a" ничего не остаётся
+    engine.Compile("a*a");
+    EXPECT_FALSE(engine.Match("aa"));
+    EXPECT_FALSE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("aaa"));
+}
+
+// Тест на жадный квантификатор '+' без отката назад (possessive)
+TEST(RegexEngineMatchTest, GreedyPlusPossessive) {
+    RegexEngine engine;
+    engine.Compile("a+");
+
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("aa"));
+    EXPECT_TRUE(engine.Match("aaaa"));
+    EXPECT_FALSE(engine.Match("b"));
+
+    engine.Compile("a+b");
+    EXPECT_FALSE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("ab"));
+    EXPECT_TRUE(engine.Match("aaab"));
+
+    // Требование из ТЗ: строка "aa" НЕ соответствует "a+a",
+    // так как "a+" забирает все символы 'a', и для "a" ничего не остаётся
+    engine.Compile("a+a");
+    EXPECT_FALSE(engine.Match("aa"));
+    EXPECT_FALSE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match("aaa"));
+}
+
+// Тест на ленивый квантификатор '?'
+TEST(RegexEngineMatchTest, LazyQuestion) {
+    RegexEngine engine;
+    engine.Compile("a?");
+
+    EXPECT_TRUE(engine.Match(""));
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match("b"));
+    EXPECT_FALSE(engine.Match("aa"));
+
+    // Требование из ТЗ: строка "a" сопоставляется с "a?a",
+    // так как "a?" сопоставляется с пустой строкой "", а "a" сопоставляется со строкой "a"
+    engine.Compile("a?a");
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match(""));
+
+    engine.Compile("a?b");
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("ab"));
+    EXPECT_FALSE(engine.Match("a"));
+    EXPECT_FALSE(engine.Match("aab"));
+}
+
+// Тест на составной шаблон из условия ТЗ: "[a-z]+ [0-9]"
+TEST(RegexEngineMatchTest, ComplexPatternExample) {
+    RegexEngine engine;
+    engine.Compile("[a-z]+ [0-9]");
+
+    EXPECT_TRUE(engine.Match("hello 5"));
+    EXPECT_TRUE(engine.Match("cat 0"));
+    EXPECT_TRUE(engine.Match("a 9"));
+
+    EXPECT_FALSE(engine.Match("hello  5"));  // два пробела
+    EXPECT_FALSE(engine.Match("hello 55"));  // две цифры
+    EXPECT_FALSE(engine.Match("123 4"));     // цифры вместо букв
+    EXPECT_FALSE(engine.Match("hello"));     // нет пробела и цифры
+    EXPECT_FALSE(engine.Match(""));
+}
+
+// Тест на оставшиеся токены в конце шаблона, допускающие 0 символов
+TEST(RegexEngineMatchTest, TrailingZeroQuantifiers) {
+    RegexEngine engine;
+    engine.Compile("a*b?");
+
+    EXPECT_TRUE(engine.Match(""));
+    EXPECT_TRUE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("aaa"));
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("ab"));
+    EXPECT_TRUE(engine.Match("aaab"));
+    EXPECT_FALSE(engine.Match("c"));
+
+    engine.Compile("a*b+");
+    EXPECT_FALSE(engine.Match(""));
+    EXPECT_FALSE(engine.Match("a"));
+    EXPECT_TRUE(engine.Match("b"));
+    EXPECT_TRUE(engine.Match("ab"));
+}
