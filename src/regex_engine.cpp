@@ -73,12 +73,10 @@ void RegexEngine::Compile(const std::string& pattern) {
 }
 
 bool RegexEngine::MatchInternal_(const std::string& text, size_t token_idx, size_t str_idx) const {
-    // 1. Все токены обработаны
     if (token_idx == tokens_.size()) {
         return str_idx == text.size();
     }
 
-    // 2. Строка закончилась, но токены ещё остались
     if (str_idx == text.size()) {
         for (size_t i = token_idx; i < tokens_.size(); ++i) {
             const QuantifierType q = tokens_[i].Quantifier();
@@ -92,7 +90,7 @@ bool RegexEngine::MatchInternal_(const std::string& text, size_t token_idx, size
     const Token& token = tokens_[token_idx];
     const QuantifierType q = token.Quantifier();
 
-    // 3. Без квантификатора (None)
+    // Без квантификатора
     if (q == QuantifierType::None) {
         if (str_idx < text.size() && token.Matches(text[str_idx])) {
             return MatchInternal_(text, token_idx + 1, str_idx + 1);
@@ -100,7 +98,7 @@ bool RegexEngine::MatchInternal_(const std::string& text, size_t token_idx, size
         return false;
     }
 
-    // 4. Жадные квантификаторы (* и +) без возврата назад (possessive)
+    // Жадные * и +
     if (q == QuantifierType::Star || q == QuantifierType::Plus) {
         size_t count = 0;
         while (str_idx + count < text.size() && token.Matches(text[str_idx + count])) {
@@ -114,14 +112,12 @@ bool RegexEngine::MatchInternal_(const std::string& text, size_t token_idx, size
         return MatchInternal_(text, token_idx + 1, str_idx + count);
     }
 
-    // 5. Ленивый квантификатор (?)
+    // Ленивый ?
     if (q == QuantifierType::Question) {
-        // Шаг 1: сначала пробуем взять 0 символов
         if (MatchInternal_(text, token_idx + 1, str_idx)) {
             return true;
         }
 
-        // Шаг 2: если с 0 символов не вышло, пробуем взять 1 символ
         if (str_idx < text.size() && token.Matches(text[str_idx])) {
             return MatchInternal_(text, token_idx + 1, str_idx + 1);
         }
